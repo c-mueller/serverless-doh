@@ -4,10 +4,11 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
-	"os/exec"
 	"os/user"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -24,32 +25,18 @@ func init() {
 }`
 
 func main() {
-	latestTagCmd := exec.Command("git describe --abbrev=0 --tags")
-	err := latestTagCmd.Run()
-	version := "dev"
-	if err == nil {
-		data, _ := latestTagCmd.Output()
-		version = string(data)
-	}
+	version := "0.0.1"
+	revision := "NYI"
 
-	//git rev-parse --abbrev-ref HEAD
-
-	revisionCmd := exec.Command("git log -n1 --pretty=%H")
-	err = revisionCmd.Run()
-	d, _ := revisionCmd.Output()
-	revision := string(d)
-
-	branchCmd := exec.Command("git rev-parse --abbrev-ref HEAD")
-	err = branchCmd.Run()
-	d, _ = branchCmd.Output()
-	branch := string(d)
+	branch := "master"
 
 	buildTimestamp := time.Now().Unix()
 	usr, _ := user.Current()
 	hname, _ := os.Hostname()
-	buildContext := fmt.Sprintf("%s@%s", usr.Name, hname)
+	buildContext := fmt.Sprintf("%s@%s", strings.ToLower(usr.Name), hname)
 	goVersion := runtime.Version()
 
 	file := fmt.Sprintf(template, version, revision, branch, buildContext, buildTimestamp, goVersion)
 	fmt.Println(file)
+	ioutil.WriteFile("generated_version_info.go", []byte(file),0555)
 }

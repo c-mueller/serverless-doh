@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"fmt"
+	"github.com/c-mueller/serverless-doh/config"
 	"log"
 	"math/rand"
 	"net"
@@ -14,20 +15,23 @@ import (
 	"github.com/miekg/dns"
 )
 
-type config struct {
-	Upstream         []string `toml:"upstream"`
-	Timeout          uint     `toml:"timeout"`
-	Tries            uint     `toml:"tries"`
-	TCPOnly          bool     `toml:"tcp_only"`
-	Verbose          bool     `toml:"verbose"`
-	LogGuessedIP     bool     `toml:"log_guessed_client_ip"`
-	UserAgent string
+type Config struct {
+	Upstream       []string
+	Timeout        uint
+	Tries          uint
+	TCPOnly        bool
+	Verbose        bool
+	LogGuessedIP   bool
+	UserAgent      string
+	EnableBlocking bool
 }
 
 type Handler struct {
-	Config    *config
-	UDPClient *dns.Client
-	TCPClient *dns.Client
+	Config     *Config
+	UDPClient  *dns.Client
+	TCPClient  *dns.Client
+	IPv4Target net.IP
+	IPv6Target net.IP
 }
 
 type DNSRequest struct {
@@ -40,7 +44,7 @@ type DNSRequest struct {
 	ErrorText       string
 }
 
-func NewHandler(conf *config) (*Handler, error) {
+func NewHandler(conf *Config) (*Handler, error) {
 	timeout := time.Duration(conf.Timeout) * time.Second
 	s := &Handler{
 		Config: conf,
@@ -53,12 +57,13 @@ func NewHandler(conf *config) (*Handler, error) {
 			Net:     "tcp",
 			Timeout: timeout,
 		},
+		IPv4Target: net.ParseIP("127.0.0.1"),
+		IPv6Target: net.ParseIP("::1"),
 	}
 	return s, nil
 }
 
-
-func (s *Handler) HandleDNSLookup(w http.ResponseWriter, r *http.Request) {
+func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
@@ -77,7 +82,6 @@ func (s *Handler) HandleDNSLookup(w http.ResponseWriter, r *http.Request) {
 		const maxMemory = 32 << 20 // 32 MB
 		r.ParseMultipartForm(maxMemory)
 	}
-
 
 	contentType := r.Header.Get("Content-Type")
 	if ct := r.FormValue("ct"); ct != "" {
@@ -203,6 +207,28 @@ func (s *Handler) indexQuestionType(msg *dns.Msg, qtype uint16) int {
 }
 
 func (s *Handler) doDNSQuery(ctx context.Context, req *DNSRequest) (resp *DNSRequest, err error) {
+	if s.Config.EnableBlocking {
+		dnsQuestion := req.Request.Question[0]
+		qname := dnsQuestion.Name
+		qname = strings.TrimSuffix(qname, ".")
+		if config.Blocklists[qname] {
+			var answers []dns.RR
+			if dnsQuestion.Qtype == dns.TypeAAAA {
+				answers = aaaa(dnsQuestion.Name, []net.IP{s.IPv6Target})
+			} else {
+				answers = a(dnsQuestion.Name, []net.IP{s.IPv4Target})
+			}
+
+			m := new(dns.Msg)
+			m.SetReply(req.Request)
+			m.Authoritative, m.RecursionAvailable = true, true
+			m.Answer = answers
+
+			req.Response = m
+			return req, nil
+		}
+	}
+
 	// TODO(m13253): Make ctx work. Waiting for a patch for ExchangeContext from miekg/dns.
 	numServers := len(s.Config.Upstream)
 	for i := uint(0); i < s.Config.Tries; i++ {
@@ -231,4 +257,28 @@ func (s *Handler) doDNSQuery(ctx context.Context, req *DNSRequest) (resp *DNSReq
 		log.Printf("DNS error from upstream %s: %s\n", req.CurrentUpstream, err.Error())
 	}
 	return req, err
+}
+
+func a(zone string, ips []net.IP) []dns.RR {
+	var answers []dns.RR
+	for _, ip := range ips {
+		r := new(dns.A)
+		r.Hdr = dns.RR_Header{Name: zone, Rrtype: dns.TypeA,
+			Class: dns.ClassINET, Ttl: 3600}
+		r.A = ip
+		answers = append(answers, r)
+	}
+	return answers
+}
+
+func aaaa(zone string, ips []net.IP) []dns.RR {
+	var answers []dns.RR
+	for _, ip := range ips {
+		r := new(dns.AAAA)
+		r.Hdr = dns.RR_Header{Name: zone, Rrtype: dns.TypeAAAA,
+			Class: dns.ClassINET, Ttl: 3600}
+		r.AAAA = ip
+		answers = append(answers, r)
+	}
+	return answers
 }

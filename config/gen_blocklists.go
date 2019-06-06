@@ -20,32 +20,6 @@ var blocklists = []string{
 	"https://hosts-file.net/ad_servers.txt",
 }
 
-//const template = `
-//package config
-//
-//import (
-//	"encoding/base64"
-//	"github.com/vmihailenco/msgpack"
-//)
-//
-//var data = "%s"
-//
-//func init() {
-//	var dmap map[string]bool
-//	byteData, _ := base64.StdEncoding.DecodeString(data)
-//	_ = msgpack.Unmarshal(byteData, &dmap)
-//	Blocklists = dmap
-//}`
-//
-//func main() {
-//	blockmap, _ := generateBlockageMap(blocklists)
-//
-//	d , _ := msgpack.Marshal(blockmap)
-//	b64data:= base64.StdEncoding.EncodeToString(d)
-//
-//	ioutil.WriteFile("generated_blocklists.go",[]byte(fmt.Sprintf(template,b64data)),0555)
-//}
-
 const template = `
 package config
 
