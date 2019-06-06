@@ -1,9 +1,10 @@
-package p
+package serverless_doh
 
 import (
+	"net/http"
+
 	"github.com/c-mueller/serverless-doh/config"
 	"github.com/c-mueller/serverless-doh/core"
-	"net/http"
 )
 
 func HandleDNS(w http.ResponseWriter, r *http.Request) {
