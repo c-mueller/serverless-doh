@@ -1,3 +1,11 @@
+# github.com/akrylysov/algnhsa v0.0.0-20190319020909-05b3d192e9a7
+github.com/akrylysov/algnhsa
+# github.com/aws/aws-lambda-go v1.9.0
+github.com/aws/aws-lambda-go/events
+github.com/aws/aws-lambda-go/lambda
+github.com/aws/aws-lambda-go/lambda/handlertrace
+github.com/aws/aws-lambda-go/lambda/messages
+github.com/aws/aws-lambda-go/lambdacontext
 # github.com/m13253/dns-over-https v1.4.2
 github.com/m13253/dns-over-https/json-dns
 # github.com/miekg/dns v1.1.13
