@@ -1,11 +1,13 @@
 # Created by .ignore support plugin (hsz.mobi)
 ### Go template
 # Binaries for programs and plugins
+.serverless/
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+ **/bin/**
 
 .idea/
 !vendor/**/**
