@@ -11,6 +11,7 @@
 
 .idea/
 !vendor/**/**
+!lambda/vendor/**/**
 
 # Test binary, build with `go test -c`
 *.test

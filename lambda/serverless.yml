@@ -21,3 +21,6 @@ functions:
       - http:
           path: dns-query
           method: get
+      - http:
+          path: dns-query
+          method: post

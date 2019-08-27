@@ -1,7 +1,9 @@
-.PHONY: build clean deploy
+GO_FLAGS := -a -v
+
+.PHONY: deploy
 
 build:
-	env GOOS=linux go build -v -ldflags="-s -w" -o bin/dns-query lambda.go
+	env GO111MODULES=on CGO_ENABLED=0 GOOS=linux go build $(GO_FLAGS) -ldflags="-s -w" -o bin/dns-query lambda.go
 
 clean:
 	rm -rf ./bin
