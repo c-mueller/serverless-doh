@@ -3,8 +3,13 @@ package main
 import (
 	"github.com/akrylysov/algnhsa"
 	"github.com/c-mueller/serverless-doh/config"
+	"github.com/c-mueller/serverless-doh/config/registry"
 	"github.com/c-mueller/serverless-doh/core"
 )
+
+func init() {
+	registry.InitializeBlacklists()
+}
 
 func main() {
 	hndlr, _ := core.NewHandler(&core.Config{

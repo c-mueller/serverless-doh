@@ -5,9 +5,6 @@ import (
 	"time"
 )
 
-//go:generate go run gen_blocklists.go
-//go:generate go run gen_version_info.go
-
 var (
 	ProgramName    = "sls-doh"
 	Version        = "UNSET"
@@ -17,9 +14,13 @@ var (
 	BuildContext   = "UNSET"
 	GoVersion      = "UNSET"
 
-	Blocklists map[string]bool
+	Blacklist             map[string]bool
+	Whitelist             map[string]bool
+	ListCreationTimestamp int
+	BlacklistItemCount    int
+	WhitelistItemCount    int
 )
 
 func GetUserAgent() string {
-	return fmt.Sprintf("%s %s.%s", ProgramName, Version, Revision)
+	return fmt.Sprintf("%s %s", ProgramName, Version)
 }

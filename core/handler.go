@@ -72,6 +72,8 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Max-Age", "3600")
 	w.Header().Set("Handler", s.Config.UserAgent)
 	w.Header().Set("X-Powered-By", s.Config.UserAgent)
+	w.Header().Set("X-Serverless-DoH-Item-Count", fmt.Sprintf("%d", config.BlacklistItemCount))
+	w.Header().Set("X-Serverless-DoH-Last-Update", fmt.Sprintf("%d", config.ListCreationTimestamp))
 
 	if r.Method == "OPTIONS" {
 		w.Header().Set("Content-Length", "0")
@@ -211,7 +213,7 @@ func (s *Handler) doDNSQuery(ctx context.Context, req *DNSRequest) (resp *DNSReq
 		dnsQuestion := req.Request.Question[0]
 		qname := dnsQuestion.Name
 		qname = strings.TrimSuffix(qname, ".")
-		if config.Blocklists[qname] {
+		if !config.Whitelist[qname] && config.Blacklist[qname] {
 			var answers []dns.RR
 			if dnsQuestion.Qtype == dns.TypeAAAA {
 				answers = aaaa(dnsQuestion.Name, []net.IP{s.IPv6Target})

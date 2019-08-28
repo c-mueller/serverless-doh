@@ -1,2 +1,3 @@
-generated_blocklists.go
+generated_blacklists_*.go
+generated_whitelists_*.go
 generated_version_info.go
