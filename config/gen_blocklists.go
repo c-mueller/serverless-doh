@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"math"
 	"net/http"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -76,40 +75,26 @@ var strictBlocklists = []string{
 	"https://zerodot1.gitlab.io/CoinBlockerLists/hosts",
 }
 
-const blacklistTemplate = `
-package %s
-
-import "github.com/c-mueller/serverless-doh/config"
-
+const blacklistTemplate = `package config
 func init() {
-	config.ListCreationTimestamp = %d
+	ListCreationTimestamp = %d
 	
-	if config.Blacklist == nil {
-		config.Blacklist = make(map[string]bool)
+	if Blacklist == nil {
+		Blacklist = make(map[string]bool)
 	}
 %s
-	config.BlacklistItemCount = %d
+	BlacklistItemCount = %d
 }`
 
-const pkglistTemplate = `
-package registry
-import (
-%s
-)`
-
-const whitelistTemplate = `
-package %s
-
-import "github.com/c-mueller/serverless-doh/config"
-
+const whitelistTemplate = `package config
 func init() {
-	config.ListCreationTimestamp = %d
+	ListCreationTimestamp = %d
 	
-	if config.Whitelist == nil {
-		config.Whitelist = make(map[string]bool)
+	if Whitelist == nil {
+		Whitelist = make(map[string]bool)
 	}
 %s
-	config.WhitelistItemCount = %d
+	WhitelistItemCount = %d
 }`
 
 var ValidateQName = regexp.MustCompile("([a-zA-Z0-9]|\\.|-)*").MatchString
@@ -124,21 +109,14 @@ func main() {
 		bl = strictBlocklists
 	}
 	fmt.Println("Creating Blacklist")
-	pkgs := createFile("generated_blacklists_%03d.go", "\tconfig.Blacklist[\"%s\"] = true\n", blacklistTemplate, "blacklist%02d", bl, 100000)
+	createFile("generated_blacklists.go", "\tBlacklist[\"%s\"] = true\n", blacklistTemplate, bl)
 	if *useWhitelists {
 		fmt.Println("Creating Whitelist")
-		p := createFile("generated_whitelists_%03d.go", "\tconfig.Whitelist[\"%s\"] = true\n", whitelistTemplate, "whitelist%02d", whitelists, 100000)
-		pkgs = append(pkgs, p...)
+		createFile("generated_whitelists.go", "\tWhitelist[\"%s\"] = true\n", whitelistTemplate, whitelists)
 	}
-
-	pkgsb := strings.Builder{}
-	for _, v := range pkgs {
-		pkgsb.WriteString(fmt.Sprintf("\t_ %q\n", v))
-	}
-	ioutil.WriteFile("registry/imports.go", []byte(fmt.Sprintf(pkglistTemplate, pkgsb.String())), 0655)
 }
 
-func createFile(filename, lineTemplate, fileTemplate, pkgTemplate string, urls []string, threshold int) []string {
+func createFile(filename, lineTemplate, template string, urls []string) {
 	blacklist, _ := generateMapFromUrls(urls)
 	sb := strings.Builder{}
 	total := len(blacklist)
@@ -147,7 +125,6 @@ func createFile(filename, lineTemplate, fileTemplate, pkgTemplate string, urls [
 	perc := -1.0
 	startTime := time.Now()
 	fmt.Println()
-	packages := make([]string, 0)
 	for k, _ := range blacklist {
 		sb.WriteString(fmt.Sprintf(lineTemplate, k))
 		newPerc := math.Floor((float64(ctr) / float64(total)) * 100)
@@ -155,26 +132,11 @@ func createFile(filename, lineTemplate, fileTemplate, pkgTemplate string, urls [
 			perc = newPerc
 			fmt.Printf("%f%% (%d of %d) Runtime: %s\n", perc, ctr, total, time.Now().Sub(startTime).String())
 		}
-		if ctr != 0 && (ctr%threshold) == 0 {
-			fname := fmt.Sprintf(filename, fileIdx)
-			fmt.Printf("Wrote %d Entries. Exceeding Threshold. Writing file %q\n", ctr, fname)
-			pkgPath := fmt.Sprintf(pkgTemplate, fileIdx)
-			packages = append(packages, fmt.Sprintf("github.com/c-mueller/serverless-doh/config/registry/%s", pkgPath))
-			os.MkdirAll(fmt.Sprintf("registry/%s", pkgPath), os.ModePerm)
-			ioutil.WriteFile(fmt.Sprintf("registry/%s/%s", pkgPath, fname), []byte(fmt.Sprintf(fileTemplate, pkgPath, time.Now().Unix(), sb.String(), len(blacklist))), 0555)
-			sb = strings.Builder{}
-			fileIdx++
-		}
 		ctr++
 	}
 	fname := fmt.Sprintf(filename, fileIdx)
 	fmt.Printf("\nDone Building template in %s. Writing file %q\n", time.Now().Sub(startTime).String(), fname)
-	pkgPath := fmt.Sprintf(pkgTemplate, fileIdx)
-	packages = append(packages, fmt.Sprintf("github.com/c-mueller/serverless-doh/config/registry/%s", pkgPath))
-	os.MkdirAll(fmt.Sprintf("registry/%s", pkgPath), os.ModePerm)
-	ioutil.WriteFile(fmt.Sprintf("registry/%s/%s", pkgPath, fname), []byte(fmt.Sprintf(fileTemplate, pkgPath, time.Now().Unix(), sb.String(), len(blacklist))), 0555)
-
-	return packages
+	ioutil.WriteFile(filename, []byte(fmt.Sprintf(template, time.Now().Unix(), sb.String(), len(blacklist))), 0555)
 }
 
 func generateMapFromUrls(blocklistUrls []string) (map[string]bool, error) {

@@ -1,10 +1,11 @@
 package core
 
-
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -144,6 +145,8 @@ func (s *Handler) generateResponseIETF(ctx context.Context, w http.ResponseWrite
 	}
 
 	w.Header().Set("Content-Type", "application/dns-message")
+	hashsum := sha256.Sum256(respBytes)
+	w.Header().Set("X-Response-Hashsum", hex.EncodeToString(hashsum[:]))
 	now := time.Now().UTC().Format(http.TimeFormat)
 	w.Header().Set("Date", now)
 	w.Header().Set("Last-Modified", now)

@@ -7,4 +7,4 @@ package config
 // Doing so requires you to comment out the above line.
 ///go:generate go run gen_blocklists.go
 
-///go:generate go run gen_version_info.go
+//go:generate go run gen_version_info.go

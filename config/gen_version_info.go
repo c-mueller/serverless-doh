@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"os/user"
 	"runtime"
 	"strings"
@@ -26,31 +25,34 @@ func init() {
 }`
 
 func main() {
-	fmt.Println("Determining Current Revision")
-	revcmd := exec.Command("git", "show", "--format=%h")
-	err := revcmd.Run()
-	if err != nil {
-		data, _ := revcmd.StderrPipe()
-		dd, _ := ioutil.ReadAll(data)
-		fmt.Println(string(dd))
-		panic(err.Error())
-	}
-	revd, _ := revcmd.Output()
-	revision := string(revd)
-	fmt.Printf("Determined Revision %s\n", revision)
+	//fmt.Println("Determining Current Revision")
+	//revcmd := exec.Command("git", "show", "--format=%h")
+	//err := revcmd.Run()
+	//if err != nil {
+	//	data, _ := revcmd.StderrPipe()
+	//	dd, _ := ioutil.ReadAll(data)
+	//	fmt.Println(string(dd))
+	//	panic(err.Error())
+	//}
+	//revd, _ := revcmd.Output()
+	//revision := string(revd)
+	//fmt.Printf("Determined Revision %s\n", revision)
+	//
+	////git rev-parse --abbrev-ref HEAD
+	//bcmd := exec.Command("git", "rev-parse", "--abbrev-ref=HEAD")
+	//err = bcmd.Run()
+	//if err != nil {
+	//	data, _ := bcmd.StderrPipe()
+	//	dd, _ := ioutil.ReadAll(data)
+	//	fmt.Println(string(dd))
+	//	panic(err.Error())
+	//}
+	//bd, _ := bcmd.Output()
+	//branch := string(bd)
+	//fmt.Printf("Determined branch %s\n", revision)
 
-	//git rev-parse --abbrev-ref HEAD
-	bcmd := exec.Command("git", "rev-parse", "--abbrev-ref=HEAD")
-	err = bcmd.Run()
-	if err != nil {
-		data, _ := bcmd.StderrPipe()
-		dd, _ := ioutil.ReadAll(data)
-		fmt.Println(string(dd))
-		panic(err.Error())
-	}
-	bd, _ := bcmd.Output()
-	branch := string(bd)
-	fmt.Printf("Determined branch %s\n", revision)
+	branch := "master"
+	revision := "TBD"
 
 	version := fmt.Sprintf("%s.%s", branch, revision)
 
