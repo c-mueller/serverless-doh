@@ -16,16 +16,17 @@ import (
 )
 
 type Config struct {
-	Upstream          []string
-	Timeout           uint
-	Tries             uint
-	TCPOnly           bool
-	UseTLS            bool
-	Verbose           bool
-	LogGuessedIP      bool
-	UserAgent         string
-	EnableBlocking    bool
-	AppendListHeaders bool
+	Upstream                 []string
+	Timeout                  uint
+	Tries                    uint
+	TCPOnly                  bool
+	UseTLS                   bool
+	Verbose                  bool
+	LogGuessedIP             bool
+	UserAgent                string
+	EnableBlocking           bool
+	AppendListHeaders        bool
+	AppendQueriedQNameHeader bool
 }
 
 type Handler struct {
@@ -225,6 +226,11 @@ func (s *Handler) doDNSQuery(ctx context.Context, req *DNSRequest, rw http.Respo
 	dnsQuestion := req.Request.Question[0]
 	qname := dnsQuestion.Name
 	qname = strings.TrimSuffix(qname, ".")
+
+	if s.Config.AppendQueriedQNameHeader {
+		rw.Header().Set("X-QName-Queried", qname)
+	}
+
 	if s.Config.EnableBlocking {
 		if !config.Whitelist[qname] && config.Blacklist[qname] {
 			var answers []dns.RR
@@ -247,10 +253,6 @@ func (s *Handler) doDNSQuery(ctx context.Context, req *DNSRequest, rw http.Respo
 		} else {
 			rw.Header().Set("X-QName-Blocked", "false")
 		}
-	}
-
-	if s.Config.Verbose {
-		rw.Header().Set("X-QName-Queried", qname)
 	}
 
 	// TODO(m13253): Make ctx work. Waiting for a patch for ExchangeContext from miekg/dns.

@@ -136,7 +136,7 @@ func createFile(filename, lineTemplate, template string, urls []string) {
 	}
 	fname := fmt.Sprintf(filename, fileIdx)
 	fmt.Printf("\nDone Building template in %s. Writing file %q\n", time.Now().Sub(startTime).String(), fname)
-	ioutil.WriteFile(filename, []byte(fmt.Sprintf(template, time.Now().Unix(), sb.String(), len(blacklist))), 0555)
+	ioutil.WriteFile(filename, []byte(fmt.Sprintf(template, time.Now().Unix(), sb.String(), len(blacklist))), 0644)
 }
 
 func generateMapFromUrls(blocklistUrls []string) (map[string]bool, error) {
