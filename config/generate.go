@@ -1,6 +1,5 @@
 package config
 
-
 //go:generate go run gen_blocklists.go -strict
 
 // Uncomment if you want less strict blocklists (PiHole Defaults)

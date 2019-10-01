@@ -16,20 +16,23 @@ import (
 )
 
 type Config struct {
-	Upstream       []string
-	Timeout        uint
-	Tries          uint
-	TCPOnly        bool
-	Verbose        bool
-	LogGuessedIP   bool
-	UserAgent      string
-	EnableBlocking bool
+	Upstream          []string
+	Timeout           uint
+	Tries             uint
+	TCPOnly           bool
+	UseTLS            bool
+	Verbose           bool
+	LogGuessedIP      bool
+	UserAgent         string
+	EnableBlocking    bool
+	AppendListHeaders bool
 }
 
 type Handler struct {
 	Config     *Config
 	UDPClient  *dns.Client
 	TCPClient  *dns.Client
+	TLSClient  *dns.Client
 	IPv4Target net.IP
 	IPv6Target net.IP
 }
@@ -46,6 +49,10 @@ type DNSRequest struct {
 
 func NewHandler(conf *Config) (*Handler, error) {
 	timeout := time.Duration(conf.Timeout) * time.Second
+	tcpmode := "tcp"
+	if conf.UseTLS {
+		tcpmode = "tcp-tls"
+	}
 	s := &Handler{
 		Config: conf,
 		UDPClient: &dns.Client{
@@ -54,8 +61,11 @@ func NewHandler(conf *Config) (*Handler, error) {
 			Timeout: timeout,
 		},
 		TCPClient: &dns.Client{
-			Net:     "tcp",
+			Net:     tcpmode,
 			Timeout: timeout,
+			//TLSConfig: &tls.Config{
+			//	InsecureSkipVerify: true,
+			//},
 		},
 		IPv4Target: net.ParseIP("127.0.0.1"),
 		IPv6Target: net.ParseIP("::1"),
@@ -72,8 +82,11 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Max-Age", "3600")
 	w.Header().Set("Handler", s.Config.UserAgent)
 	w.Header().Set("X-Powered-By", s.Config.UserAgent)
-	w.Header().Set("X-Serverless-DoH-Item-Count", fmt.Sprintf("%d", config.BlacklistItemCount))
-	w.Header().Set("X-Serverless-DoH-Last-Update", fmt.Sprintf("%d", config.ListCreationTimestamp))
+	if s.Config.AppendListHeaders {
+		w.Header().Set("X-DoH-Blacklist-Item-Count", fmt.Sprintf("%d", config.BlacklistItemCount))
+		w.Header().Set("X-DoH-Whitelist-Item-Count", fmt.Sprintf("%d", config.WhitelistItemCount))
+		w.Header().Set("X-DoH-Lists-Last-Update", time.Unix(int64(config.ListCreationTimestamp), 0).String())
+	}
 
 	if r.Method == "OPTIONS" {
 		w.Header().Set("Content-Length", "0")
@@ -144,7 +157,7 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	req = s.patchRootRD(req)
 
 	var err error
-	req, err = s.doDNSQuery(ctx, req)
+	req, err = s.doDNSQuery(ctx, req, w)
 	if err != nil {
 		jsonDNS.FormatError(w, fmt.Sprintf("DNS query failure (%s)", err.Error()), 503)
 		return
@@ -208,11 +221,11 @@ func (s *Handler) indexQuestionType(msg *dns.Msg, qtype uint16) int {
 	return -1
 }
 
-func (s *Handler) doDNSQuery(ctx context.Context, req *DNSRequest) (resp *DNSRequest, err error) {
+func (s *Handler) doDNSQuery(ctx context.Context, req *DNSRequest, rw http.ResponseWriter) (resp *DNSRequest, err error) {
+	dnsQuestion := req.Request.Question[0]
+	qname := dnsQuestion.Name
+	qname = strings.TrimSuffix(qname, ".")
 	if s.Config.EnableBlocking {
-		dnsQuestion := req.Request.Question[0]
-		qname := dnsQuestion.Name
-		qname = strings.TrimSuffix(qname, ".")
 		if !config.Whitelist[qname] && config.Blacklist[qname] {
 			var answers []dns.RR
 			if dnsQuestion.Qtype == dns.TypeAAAA {
@@ -226,15 +239,25 @@ func (s *Handler) doDNSQuery(ctx context.Context, req *DNSRequest) (resp *DNSReq
 			m.Authoritative, m.RecursionAvailable = true, true
 			m.Answer = answers
 
+			rw.Header().Set("X-QName-Blocked", "true")
+			rw.Header().Set("X-Used-Resolver", "127.0.0.1")
+
 			req.Response = m
 			return req, nil
+		} else {
+			rw.Header().Set("X-QName-Blocked", "false")
 		}
+	}
+
+	if s.Config.Verbose {
+		rw.Header().Set("X-QName-Queried", qname)
 	}
 
 	// TODO(m13253): Make ctx work. Waiting for a patch for ExchangeContext from miekg/dns.
 	numServers := len(s.Config.Upstream)
 	for i := uint(0); i < s.Config.Tries; i++ {
 		req.CurrentUpstream = s.Config.Upstream[rand.Intn(numServers)]
+		rw.Header().Set("X-Used-Resolver", req.CurrentUpstream)
 
 		// Use TCP if always configured to or if the Query type dictates it (AXFR)
 		if s.Config.TCPOnly || (s.indexQuestionType(req.Request, dns.TypeAXFR) > -1) {
@@ -258,6 +281,7 @@ func (s *Handler) doDNSQuery(ctx context.Context, req *DNSRequest) (resp *DNSReq
 		}
 		log.Printf("DNS error from upstream %s: %s\n", req.CurrentUpstream, err.Error())
 	}
+	rw.Header().Set("X-Used-Resolver", "127.0.0.1")
 	return req, err
 }
 

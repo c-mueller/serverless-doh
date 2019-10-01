@@ -1,4 +1,4 @@
-GO_FLAGS := -v -a
+GO_FLAGS := -v
 
 .PHONY: deploy
 
@@ -6,7 +6,10 @@ generate:
 	cd .. && go generate ./...
 
 build:
-	env GO111MODULES=on GOOS=linux go build $(GO_FLAGS) -ldflags="-s -w" -o bin/dns-query lambda.go
+	GO111MODULES=on GOOS=linux go build $(GO_FLAGS) -ldflags="-s -w" -o bin/dns-query lambda.go
+
+update: build
+	sls deploy -v -f dns-query
 
 clean:
 	rm -rf ./bin

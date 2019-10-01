@@ -3,9 +3,7 @@ package core
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -22,6 +20,7 @@ import (
 func (s *Handler) parseRequestIETF(ctx context.Context, w http.ResponseWriter, r *http.Request) *DNSRequest {
 	requestBase64 := r.FormValue("dns")
 	requestBinary, err := base64.RawURLEncoding.DecodeString(requestBase64)
+
 	if err != nil {
 		return &DNSRequest{
 			ErrorCode: 400,
@@ -43,7 +42,6 @@ func (s *Handler) parseRequestIETF(ctx context.Context, w http.ResponseWriter, r
 			ErrorText: fmt.Sprintf("Invalid argument value: \"dns\""),
 		}
 	}
-
 	if s.patchDNSCryptProxyReqID(w, r, requestBinary) {
 		return &DNSRequest{
 			ErrorCode: 444,
@@ -145,8 +143,6 @@ func (s *Handler) generateResponseIETF(ctx context.Context, w http.ResponseWrite
 	}
 
 	w.Header().Set("Content-Type", "application/dns-message")
-	hashsum := sha256.Sum256(respBytes)
-	w.Header().Set("X-Response-Hashsum", hex.EncodeToString(hashsum[:]))
 	now := time.Now().UTC().Format(http.TimeFormat)
 	w.Header().Set("Date", now)
 	w.Header().Set("Last-Modified", now)
@@ -166,6 +162,7 @@ func (s *Handler) generateResponseIETF(ctx context.Context, w http.ResponseWrite
 	if respJSON.Status == dns.RcodeServerFailure {
 		w.WriteHeader(503)
 	}
+
 	w.Write(respBytes)
 }
 

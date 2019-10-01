@@ -22,6 +22,11 @@ package:
 functions:
   dns-query:
     handler: bin/dns-query
+    environment:
+      ENABLE_BLOCKING: true
+      APPEND_LIST_INFO: false
+      APPEND_PAYLOAD_HASHES: false
+      VERBOSE: false
     events:
       - http:
           path: dns-query
