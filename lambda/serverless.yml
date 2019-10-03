@@ -23,10 +23,32 @@ functions:
   dns-query:
     handler: bin/dns-query
     environment:
-      ENABLE_BLOCKING: true
-      APPEND_LIST_INFO: false
-      APPEND_PAYLOAD_HASHES: false
-      VERBOSE: false
+      # Sets the Upstream DNS servers, The resolver used for resolving a request is chosen at random from this list.
+      # The list must be in the following format:
+      # <IP>:<PORT>,<IP>:<PORT> ...
+      UPSTREAM_SERVERS: fdns1.dismail.de:853,dns.digitale-gesellschaft.ch:853,unicast.uncensoreddns.org:853,dot.securedns.eu:853,dns2.digitalcourage.de:853
+      # Set the timeout to the DNS servers
+      UPSTREAM_CONNECTION_TIMEOUT: "10"
+      # Define how often resolution should be retried, if it fails once before returning an error
+      UPSTREAM_RESOLUTION_RETRIES: "10"
+      # Only Use TCP based connections
+      # This option is ignored when using TLS based resolvers
+      UPSTREAM_TCP_ONLY: "true"
+      # Use TLS (DoT)
+      # When this is true all upstream resolvers must support TLS.
+      UPSTREAM_USE_TLS: "true"
+      # Enable Ad Blocking features
+      ENABLE_BLOCKING: "true"
+      # Append Black and whitelist informations to the response headers
+      # this includes the number of entries and the update timestamp of the lists
+      RESPONSE_APPEND_LIST_HEADERS: "true"
+      # Append the resolved QName to the response header
+      RESPONSE_APPEND_QNAME_HEADER: "false"
+      # Verbose log output (useful for debugging)
+      VERBOSE: "true"
+      # "PRO" Settings (no modification needed)
+      LOG_GUESSED_IP: "false"
+      APPLICATION_USER_AGENT: sls-doh/1.0.0
     events:
       - http:
           path: dns-query

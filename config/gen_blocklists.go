@@ -24,7 +24,7 @@ var whitelists = []string{
 	"https://files.krnl.eu/whitelist.txt",
 }
 
-var blocklists = []string{
+var blacklists = []string{
 	"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
 	"https://mirror1.malwaredomains.com/files/justdomains",
 	"http://sysctl.org/cameleon/hosts",
@@ -34,7 +34,7 @@ var blocklists = []string{
 	"https://hosts-file.net/ad_servers.txt",
 }
 
-var strictBlocklists = []string{
+var strictBlacklists = []string{
 	"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
 	"https://mirror1.malwaredomains.com/files/justdomains",
 	"http://sysctl.org/cameleon/hosts",
@@ -105,20 +105,20 @@ func init() {
 }
 
 func main() {
-	bl := blocklists
+	bl := blacklists
 
 	ev := os.Getenv("STRICT_MODE")
 	if len(ev) > 0 {
 		fmt.Println("STRICT_MODE environment variable is set. Using it to determine if strict mode should be built")
 		if ev == "1" || ev =="true" {
 			fmt.Println("Using strict mode")
-			bl = strictBlocklists
+			bl = strictBlacklists
 		} else {
 			fmt.Println("Using Normal mode")
 		}
 	} else {
 		if *useStrictMode {
-			bl = strictBlocklists
+			bl = strictBlacklists
 		}
 	}
 

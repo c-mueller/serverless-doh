@@ -5,6 +5,9 @@ GO_FLAGS := -v
 generate:
 	cd .. && go generate ./...
 
+generate_strict:
+	cd .. && STRICT_MODE=1 go generate ./...
+
 build:
 	GO111MODULES=on GOOS=linux go build $(GO_FLAGS) -ldflags="-s -w" -o bin/dns-query lambda.go
 
