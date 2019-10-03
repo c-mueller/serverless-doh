@@ -9,6 +9,7 @@ github.com/c-mueller/serverless-doh v0.0.0-20190718184545-54f7558bfd7b h1:DMprrS
 github.com/c-mueller/serverless-doh v0.0.0-20190718184545-54f7558bfd7b/go.mod h1:iYIWwFXOkXfF7kRplD7woSMHYUyh9Y1BYIA2vwJmmmo=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/kelseyhightower/envconfig v1.4.0/go.mod h1:cccZRl6mQpaq41TPp5QxidR+Sa3axMbJDNb//FQX6Gg=
 github.com/m13253/dns-over-https v1.4.2 h1:L9CiSu12Jf9AHZAdLXuJcu7/Iwxfnk825T/+382EMcM=
 github.com/m13253/dns-over-https v1.4.2/go.mod h1:3l+9u0xptVV6tsHZtYvAwWdgvAIj6qSvRsLI93CTkfQ=
 github.com/miekg/dns v1.1.13 h1:x7DQtkU0cedzeS8TD36tT/w1Hm4rDtfCaYYAHE7TTBI=

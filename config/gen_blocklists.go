@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -105,9 +106,22 @@ func init() {
 
 func main() {
 	bl := blocklists
-	if *useStrictMode {
-		bl = strictBlocklists
+
+	ev := os.Getenv("STRICT_MODE")
+	if len(ev) > 0 {
+		fmt.Println("STRICT_MODE environment variable is set. Using it to determine if strict mode should be built")
+		if ev == "1" || ev =="true" {
+			fmt.Println("Using strict mode")
+			bl = strictBlocklists
+		} else {
+			fmt.Println("Using Normal mode")
+		}
+	} else {
+		if *useStrictMode {
+			bl = strictBlocklists
+		}
 	}
+
 	fmt.Println("Creating Blacklist")
 	createFile("generated_blacklists.go", "\tBlacklist[\"%s\"] = true\n", blacklistTemplate, bl)
 	if *useWhitelists {
@@ -117,11 +131,11 @@ func main() {
 }
 
 func createFile(filename, lineTemplate, template string, urls []string) {
+	fmt.Printf("Creating List with %d entries\n", len(urls))
 	blacklist, _ := generateMapFromUrls(urls)
 	sb := strings.Builder{}
 	total := len(blacklist)
 	ctr := 0
-	fileIdx := 0
 	perc := -1.0
 	startTime := time.Now()
 	fmt.Println()
@@ -134,8 +148,7 @@ func createFile(filename, lineTemplate, template string, urls []string) {
 		}
 		ctr++
 	}
-	fname := fmt.Sprintf(filename, fileIdx)
-	fmt.Printf("\nDone Building template in %s. Writing file %q\n", time.Now().Sub(startTime).String(), fname)
+	fmt.Printf("\nDone Building template in %s. Writing file %q\n", time.Now().Sub(startTime).String(), filename)
 	ioutil.WriteFile(filename, []byte(fmt.Sprintf(template, time.Now().Unix(), sb.String(), len(blacklist))), 0644)
 }
 
@@ -146,12 +159,14 @@ func generateMapFromUrls(blocklistUrls []string) (map[string]bool, error) {
 		fmt.Printf("[%d/%d]: Downloading contents of list %q\n", i+1, cntt, blocklistURL)
 		content, err := http.Get(blocklistURL)
 		if err != nil {
-			return nil, err
+			fmt.Printf("Loading List from %q failed. Skippling...\nError Message: %s\n", blocklistURL, err.Error())
+			continue
 		}
 
 		data, err := ioutil.ReadAll(content.Body)
 		if err != nil {
-			return nil, err
+			fmt.Printf("Loading List from %q failed. Skippling...\nError Message: %s\n", blocklistURL, err.Error())
+			continue
 		}
 		fmt.Printf("[%d/%d]: Parsing qnames from list %q\n", i+1, cntt, blocklistURL)
 		cnt := parseBlockFile(data, blockageMap)

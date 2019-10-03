@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/c-mueller/serverless-doh/config"
+	"github.com/kelseyhightower/envconfig"
 	"log"
 	"math/rand"
 	"net"
@@ -15,18 +16,24 @@ import (
 	"github.com/miekg/dns"
 )
 
+func GetConfigFromEnvironment() *Config {
+	var cfg Config
+	envconfig.MustProcess("", &cfg)
+	return &cfg
+}
+
 type Config struct {
-	Upstream                 []string
-	Timeout                  uint
-	Tries                    uint
-	TCPOnly                  bool
-	UseTLS                   bool
-	Verbose                  bool
-	LogGuessedIP             bool
-	UserAgent                string
-	EnableBlocking           bool
-	AppendListHeaders        bool
-	AppendQueriedQNameHeader bool
+	Upstream                 []string `json:"upstream" envconfig:"UPSTREAM_SERVERS" required:"true"`
+	Timeout                  uint     `json:"timeout" envconfig:"UPSTREAM_CONNECTION_TIMEOUT" default:"10"`
+	Tries                    uint     `json:"tries" envconfig:"UPSTREAM_RESOLUTION_RETRIES" default:"10"`
+	TCPOnly                  bool     `json:"tcp_only" envconfig:"UPSTREAM_TCP_ONLY" default:"true"`
+	UseTLS                   bool     `json:"use_tls" envconfig:"UPSTREAM_USE_TLS" default:"true"`
+	Verbose                  bool     `json:"verbose" envconfig:"VERBOSE" default:"false"`
+	LogGuessedIP             bool     `json:"log_guessed_ip" envconfig:"LOG_GUESSED_IP" default:"false"`
+	UserAgent                string   `json:"user_agent" envconfig:"APPLICATION_USER_AGENT" default:"sls-doh/1.0.0"`
+	EnableBlocking           bool     `json:"enable_blocking" envconfig:"ENABLE_BLOCKING" default:"true"`
+	AppendListHeaders        bool     `json:"append_list_headers" envconfig:"RESPONSE_APPEND_LIST_HEADERS" default:"true"`
+	AppendQueriedQNameHeader bool     `json:"append_queried_qname_header" envconfig:"RESPONSE_APPEND_QNAME_HEADER" default:"false"`
 }
 
 type Handler struct {
