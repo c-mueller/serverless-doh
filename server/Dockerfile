@@ -5,7 +5,7 @@ ENV STRICT_MODE 0
 WORKDIR /go/src/github.com/c-mueller/serverless-doh
 COPY . /go/src/github.com/c-mueller/serverless-doh
 RUN go generate ./...
-RUN cd server && go build -v -o sls-doh
+RUN cd server && go build -v -ldflags "-s -w" -o sls-doh
 
 FROM alpine AS runtime
 RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/*
