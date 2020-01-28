@@ -1,11 +1,10 @@
 package main
 
 import (
-	"gopkg.in/alecthomas/kingpin.v2"
-	"net/http"
-
 	"github.com/c-mueller/serverless-doh/config"
 	"github.com/c-mueller/serverless-doh/core"
+	"github.com/gin-gonic/gin"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
@@ -19,6 +18,7 @@ var (
 )
 
 func main() {
+	gin.SetMode(gin.ReleaseMode)
 	kingpin.Parse()
 	cfg := &core.Config{}
 	if *useEnvironment {
@@ -39,8 +39,38 @@ func main() {
 		}
 	}
 
-	hndlr, _ := core.NewHandler(cfg)
-	err := http.ListenAndServe(*endpoint, hndlr)
+	cfghndlr, _ := core.NewHandler(cfg)
+	bcfg := *cfg
+	bcfg.EnableBlocking = false
+	bcfghndlr, _ := core.NewHandler(&bcfg)
+
+	engine := gin.Default()
+
+	blockingFunc := func(ctx *gin.Context) {
+		cfghndlr.ServeHTTP(ctx.Writer, ctx.Request)
+	}
+	nonblockingFunc := func(ctx *gin.Context) {
+		bcfghndlr.ServeHTTP(ctx.Writer, ctx.Request)
+	}
+
+	engine.Any("dq", blockingFunc)
+	engine.Any("dns-query", blockingFunc)
+	engine.Any("/", blockingFunc)
+	engine.Any("odq", nonblockingFunc)
+	engine.Any("open-dns-query", nonblockingFunc)
+	engine.GET("info", func(context *gin.Context) {
+		context.JSON(200, gin.H{
+			"resolvers":                 cfg.Upstream,
+			"version":                   config.Version,
+			"build_timestamp":           config.BuildTimestamp,
+			"list_generation_timestamp": config.ListCreationTimestamp,
+			"build_context":             config.BuildContext,
+			"blacklist_entry_count":     config.BlacklistItemCount,
+			"whitelist_entry_count":     config.WhitelistItemCount,
+		})
+	})
+
+	err := engine.Run(*endpoint)
 	if err != nil {
 		panic(err.Error())
 	}
