@@ -12,11 +12,12 @@ require (
 	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/m13253/dns-over-https v1.4.2
 	github.com/mattn/go-isatty v0.0.11 // indirect
-	github.com/miekg/dns v1.1.19
+	github.com/miekg/dns v1.1.27
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
-	golang.org/x/net v0.0.0-20190930134127-c5a3c61f89f3
-	golang.org/x/sys v0.0.0-20191210023423-ac6580df4449 // indirect
+	golang.org/x/crypto v0.0.0-20200214034016-1d94cc7ab1c6 // indirect
+	golang.org/x/net v0.0.0-20200202094626-16171245cfb2
+	golang.org/x/sys v0.0.0-20200217220822-9197077df867 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/go-playground/validator.v9 v9.30.2 // indirect
 	gopkg.in/yaml.v2 v2.2.7 // indirect
