@@ -3,8 +3,11 @@ package main
 import (
 	"github.com/c-mueller/serverless-doh/config"
 	"github.com/c-mueller/serverless-doh/core"
+	"github.com/c-mueller/serverless-doh/server/util"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"os"
 )
 
 var (
@@ -17,7 +20,18 @@ var (
 	useEnvironment             = kingpin.Flag("env", "Load Configuration from environment variables").Bool()
 )
 
+var logger *logrus.Entry
+
+func init() {
+	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logger = logrus.WithField("version", config.Version)
+	logrus.SetLevel(logrus.InfoLevel)
+}
+
 func main() {
+	log := logger.WithField("stage", "init")
+
+	log.Info("Parsing Configuration...")
 	gin.SetMode(gin.ReleaseMode)
 	kingpin.Parse()
 	cfg := &core.Config{}
@@ -38,13 +52,19 @@ func main() {
 			AppendQueriedQNameHeader: *appendQueriedQnameToHeader,
 		}
 	}
+	log.WithField("config", cfg).Info("Parsed configuration")
 
-	cfghndlr, _ := core.NewHandler(cfg)
+	log.Info("Creating Handlers...")
+	cfghndlr, _ := core.NewHandler(cfg, logger)
 	bcfg := *cfg
 	bcfg.EnableBlocking = false
-	bcfghndlr, _ := core.NewHandler(&bcfg)
+	bcfghndlr, _ := core.NewHandler(&bcfg, logger)
 
-	engine := gin.Default()
+	log.Info("Initializing Gin....")
+
+	engine := gin.New()
+	engine.Use(gin.Recovery())
+	engine.Use(util.LogMiddleware("sls-doh.srv", []util.RegexRule{}, logger.WithField("stage", "http-middleware"), cfg.Verbose))
 
 	blockingFunc := func(ctx *gin.Context) {
 		cfghndlr.ServeHTTP(ctx.Writer, ctx.Request)
@@ -70,8 +90,10 @@ func main() {
 		})
 	})
 
+	logger.Infof("Listening for Requests on %s", *endpoint)
 	err := engine.Run(*endpoint)
 	if err != nil {
-		panic(err.Error())
+		log.WithError(err).Errorf("Server execution stopped due to an error. %q", err.Error())
+		os.Exit(1)
 	}
 }

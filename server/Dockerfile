@@ -9,7 +9,9 @@ RUN cd server && go build -v -ldflags "-s -w" -o sls-doh
 
 FROM alpine AS runtime
 RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/*
-COPY --from=builder /go/src/github.com/c-mueller/serverless-doh/server/sls-doh sls-doh
+COPY --from=builder /go/src/github.com/c-mueller/serverless-doh/server/sls-doh /usr/bin/sls-doh
+RUN adduser -D dns
+USER dns
 EXPOSE 8053
-ENV SERVER_PORT=8053
-CMD ./sls-doh --env -e ":$SERVER_PORT"
+ENV PORT=8053
+CMD /usr/bin/sls-doh --env -e ":$PORT"

@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"strconv"
@@ -18,6 +17,8 @@ import (
 )
 
 func (s *Handler) parseRequestIETF(ctx context.Context, w http.ResponseWriter, r *http.Request) *DNSRequest {
+	log := s.Logger.WithField("stage", "parse-request-ietf")
+
 	requestBase64 := r.FormValue("dns")
 	requestBinary, err := base64.RawURLEncoding.DecodeString(requestBase64)
 
@@ -77,9 +78,9 @@ func (s *Handler) parseRequestIETF(ctx context.Context, w http.ResponseWriter, r
 			clientip = s.findClientIP(r)
 		}
 		if clientip != nil {
-			fmt.Printf("%s - - [%s] \"%s %s %s\"\n", clientip, time.Now().Format("02/Jan/2006:15:04:05 -0700"), questionName, questionClass, questionType)
+			log.Infof("%s - - [%s] \"%s %s %s\"", clientip, time.Now().Format("02/Jan/2006:15:04:05 -0700"), questionName, questionClass, questionType)
 		} else {
-			fmt.Printf("%s - - [%s] \"%s %s %s\"\n", r.RemoteAddr, time.Now().Format("02/Jan/2006:15:04:05 -0700"), questionName, questionClass, questionType)
+			log.Infof("%s - - [%s] \"%s %s %s\"", r.RemoteAddr, time.Now().Format("02/Jan/2006:15:04:05 -0700"), questionName, questionClass, questionType)
 		}
 	}
 
@@ -133,11 +134,13 @@ func (s *Handler) parseRequestIETF(ctx context.Context, w http.ResponseWriter, r
 }
 
 func (s *Handler) generateResponseIETF(ctx context.Context, w http.ResponseWriter, r *http.Request, req *DNSRequest) {
+	log := s.Logger.WithField("stage", "gen-response-ietf")
+
 	respJSON := jsonDNS.Marshal(req.Response)
 	req.Response.Id = req.TransactionID
 	respBytes, err := req.Response.Pack()
 	if err != nil {
-		log.Println(err)
+		log.WithError(err).Error("Packing response failed with an error. %s", err.Error())
 		jsonDNS.FormatError(w, fmt.Sprintf("DNS packet construct failure (%s)", err.Error()), 500)
 		return
 	}
@@ -168,8 +171,9 @@ func (s *Handler) generateResponseIETF(ctx context.Context, w http.ResponseWrite
 
 // Workaround a bug causing DNSCrypt-Proxy to expect a Response with TransactionID = 0xcafe
 func (s *Handler) patchDNSCryptProxyReqID(w http.ResponseWriter, r *http.Request, requestBinary []byte) bool {
+	log := s.Logger.WithField("stage", "patch-dnscrypt")
 	if strings.Contains(r.UserAgent(), "dnscrypt-proxy") && bytes.Equal(requestBinary, []byte("\xca\xfe\x01\x00\x00\x01\x00\x00\x00\x00\x00\x01\x00\x00\x02\x00\x01\x00\x00\x29\x10\x00\x00\x00\x80\x00\x00\x00")) {
-		log.Println("DNSCrypt-Proxy detected. Patching Response.")
+		log.Infof("DNSCrypt-Proxy detected. Patching Response.")
 		w.Header().Set("Content-Type", "application/dns-message")
 		w.Header().Set("Vary", "Accept, User-Agent")
 		now := time.Now().UTC().Format(http.TimeFormat)
@@ -182,8 +186,9 @@ func (s *Handler) patchDNSCryptProxyReqID(w http.ResponseWriter, r *http.Request
 
 // Workaround a bug causing Firefox 61-62 to reject responses with Content-Type = application/dns-message
 func (s *Handler) patchFirefoxContentType(w http.ResponseWriter, r *http.Request, req *DNSRequest) bool {
+	log := s.Logger.WithField("stage", "patch-ff")
 	if strings.Contains(r.UserAgent(), "Firefox") && strings.Contains(r.Header.Get("Accept"), "application/dns-udpwireformat") && !strings.Contains(r.Header.Get("Accept"), "application/dns-message") {
-		log.Println("Firefox 61-62 detected. Patching Response.")
+		log.Infof("Firefox 61-62 detected. Patching Response.")
 		w.Header().Set("Content-Type", "application/dns-udpwireformat")
 		w.Header().Set("Vary", "Accept, User-Agent")
 		req.IsTailored = true

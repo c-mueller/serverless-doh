@@ -1,6 +1,8 @@
 FROM alpine AS runtime
 RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/*
 COPY sls-doh sls-doh
+RUN adduser -D dns
+USER dns
 EXPOSE 8053
-ENV SERVER_PORT=8053
-CMD ./sls-doh --env -e ":$SERVER_PORT"
+ENV PORT=8053
+CMD /usr/bin/sls-doh --env -e ":$PORT"

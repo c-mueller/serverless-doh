@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/c-mueller/serverless-doh/config"
 	"github.com/kelseyhightower/envconfig"
-	"log"
+	"github.com/sirupsen/logrus"
 	"math/rand"
 	"net"
 	"net/http"
@@ -43,6 +43,7 @@ type Handler struct {
 	TLSClient  *dns.Client
 	IPv4Target net.IP
 	IPv6Target net.IP
+	Logger     *logrus.Entry
 }
 
 type DNSRequest struct {
@@ -55,7 +56,7 @@ type DNSRequest struct {
 	ErrorText       string
 }
 
-func NewHandler(conf *Config) (*Handler, error) {
+func NewHandler(conf *Config, logger *logrus.Entry) (*Handler, error) {
 	timeout := time.Duration(conf.Timeout) * time.Second
 	tcpmode := "tcp"
 	if conf.UseTLS {
@@ -77,12 +78,15 @@ func NewHandler(conf *Config) (*Handler, error) {
 		},
 		IPv4Target: net.ParseIP("127.0.0.1"),
 		IPv6Target: net.ParseIP("::1"),
+		Logger:     logger,
 	}
 	return s, nil
 }
 
 func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	log := s.Logger.WithField("stage", "pre-post-processing").WithContext(ctx)
+	log.Debug("Processing Request...")
 
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS, POST")
@@ -143,6 +147,8 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	log.Debugf("Determined Response Type %s", responseType)
+
 	var req *DNSRequest
 	if contentType == "application/dns-json" {
 		req = s.parseRequestGoogle(ctx, w, r)
@@ -151,6 +157,7 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else if contentType == "application/dns-udpwireformat" {
 		req = s.parseRequestIETF(ctx, w, r)
 	} else {
+		log.Errorf("Aborting due to a Format error")
 		jsonDNS.FormatError(w, fmt.Sprintf("Invalid argument value: \"ct\" = %q", contentType), 415)
 		return
 	}
@@ -158,6 +165,7 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.ErrorCode != 0 {
+		log.Errorf("Aborting due to a invalid response error")
 		jsonDNS.FormatError(w, req.ErrorText, req.ErrorCode)
 		return
 	}
@@ -167,6 +175,7 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var err error
 	req, err = s.doDNSQuery(ctx, req, w)
 	if err != nil {
+		log.WithError(err).Error("Aborting due to a DNS Query Failure error")
 		jsonDNS.FormatError(w, fmt.Sprintf("DNS query failure (%s)", err.Error()), 503)
 		return
 	}
@@ -230,6 +239,8 @@ func (s *Handler) indexQuestionType(msg *dns.Msg, qtype uint16) int {
 }
 
 func (s *Handler) doDNSQuery(ctx context.Context, req *DNSRequest, rw http.ResponseWriter) (resp *DNSRequest, err error) {
+	log := s.Logger.WithField("stage", "do-query").WithContext(ctx)
+
 	dnsQuestion := req.Request.Question[0]
 	qname := dnsQuestion.Name
 	qname = strings.TrimSuffix(qname, ".")
@@ -274,7 +285,7 @@ func (s *Handler) doDNSQuery(ctx context.Context, req *DNSRequest, rw http.Respo
 		} else {
 			req.Response, _, err = s.UDPClient.Exchange(req.Request, req.CurrentUpstream)
 			if err == nil && req.Response != nil && req.Response.Truncated {
-				log.Println(err)
+				log.WithError(err).Error("DNS Lookup on server %s has failed with an error %s", req.CurrentUpstream, err.Error())
 				req.Response, _, err = s.TCPClient.Exchange(req.Request, req.CurrentUpstream)
 			}
 
@@ -288,7 +299,7 @@ func (s *Handler) doDNSQuery(ctx context.Context, req *DNSRequest, rw http.Respo
 		if err == nil {
 			return req, nil
 		}
-		log.Printf("DNS error from upstream %s: %s\n", req.CurrentUpstream, err.Error())
+		log.WithError(err).Errorf("DNS error from upstream %s: %s", req.CurrentUpstream, err.Error())
 	}
 	rw.Header().Set("X-Used-Resolver", "127.0.0.1")
 	return req, err

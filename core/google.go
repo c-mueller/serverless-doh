@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"strconv"
@@ -147,10 +146,11 @@ func (s *Handler) parseRequestGoogle(ctx context.Context, w http.ResponseWriter,
 }
 
 func (s *Handler) generateResponseGoogle(ctx context.Context, w http.ResponseWriter, r *http.Request, req *DNSRequest) {
+	log := s.Logger.WithField("stage", "gen-response-google")
 	respJSON := jsonDNS.Marshal(req.Response)
 	respStr, err := json.Marshal(respJSON)
 	if err != nil {
-		log.Println(err)
+		log.WithError(err).Errorf("Parsing dns packet failed with an error. %s", err.Error())
 		jsonDNS.FormatError(w, fmt.Sprintf("DNS packet parse failure (%s)", err.Error()), 500)
 		return
 	}
