@@ -6,7 +6,7 @@ require (
 	github.com/gin-gonic/gin v1.7.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/m13253/dns-over-https v1.4.2
-	github.com/miekg/dns v1.1.45
+	github.com/miekg/dns v1.1.46
 	github.com/sirupsen/logrus v1.8.1
 	golang.org/x/net v0.0.0-20210726213435-c6fcb2dbf985
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
