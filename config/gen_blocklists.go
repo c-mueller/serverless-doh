@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 package main
@@ -20,15 +21,11 @@ var (
 	useWhitelists = flag.Bool("whitelist", true, "Generate Whitelist")
 )
 
-var whitelists = []string{
-	"https://files.krnl.eu/whitelist.txt",
-}
+var whitelists = []string{}
 
 var blacklists = []string{
 	"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
-	"https://mirror1.malwaredomains.com/files/justdomains",
 	"http://sysctl.org/cameleon/hosts",
-	"https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist",
 	"https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt",
 	"https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt",
 	"https://hosts-file.net/ad_servers.txt",
@@ -36,21 +33,14 @@ var blacklists = []string{
 
 var strictBlacklists = []string{
 	"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
-	"https://mirror1.malwaredomains.com/files/justdomains",
 	"http://sysctl.org/cameleon/hosts",
-	"https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist",
 	"https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt",
 	"https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt",
-	"https://hosts-file.net/ad_servers.txt",
-	"https://hosts-file.net/grm.txt",
 	"https://reddestdream.github.io/Projects/MinimalHosts/etc/MinimalHostsBlocker/minimalhosts",
 	"https://raw.githubusercontent.com/StevenBlack/hosts/master/data/KADhosts/hosts",
 	"https://raw.githubusercontent.com/StevenBlack/hosts/master/data/add.Spam/hosts",
 	"https://v.firebog.net/hosts/static/w3kbl.txt",
 	"https://v.firebog.net/hosts/BillStearns.txt",
-	"https://www.dshield.org/feeds/suspiciousdomains_Low.txt",
-	"https://www.dshield.org/feeds/suspiciousdomains_Medium.txt",
-	"https://www.dshield.org/feeds/suspiciousdomains_High.txt",
 	"https://www.joewein.net/dl/bl/dom-bl-base.txt",
 	"https://raw.githubusercontent.com/matomo-org/referrer-spam-blacklist/master/spammers.txt",
 	"https://hostsfile.org/Downloads/hosts.txt",
@@ -74,7 +64,7 @@ var strictBlacklists = []string{
 	"https://raw.githubusercontent.com/StevenBlack/hosts/master/data/add.2o7Net/hosts",
 	"https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/spy.txt",
 	"https://zerodot1.gitlab.io/CoinBlockerLists/hosts",
-	"http://www.malwaredomainlist.com/hostslist/hosts.txt",               
+	"http://www.malwaredomainlist.com/hostslist/hosts.txt",
 	"http://www.malwaredomainlist.com/hostslist/delisted.txt",
 	"https://raw.github.com/jonschipp/mal-dnssearch/master/mandiant_apt1.dns",
 	"https://hosts-file.net/psh.txt",
@@ -115,7 +105,7 @@ func main() {
 	ev := os.Getenv("STRICT_MODE")
 	if len(ev) > 0 {
 		fmt.Println("STRICT_MODE environment variable is set. Using it to determine if strict mode should be built")
-		if ev == "1" || ev =="true" {
+		if ev == "1" || ev == "true" {
 			fmt.Println("Using strict mode")
 			bl = strictBlacklists
 		} else {
