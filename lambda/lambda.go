@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/akrylysov/algnhsa"
-	"github.com/c-mueller/serverless-doh/doh"
+	"github.com/c-mueller/serverless-doh/core/doh"
 	"github.com/sirupsen/logrus"
 )
 
