@@ -1,11 +1,8 @@
 FROM golang AS builder
-ENV GO111MODULES on
-ENV CGO_ENABLED 0
-ENV STRICT_MODE 0
 WORKDIR /go/src/github.com/c-mueller/serverless-doh
 COPY . /go/src/github.com/c-mueller/serverless-doh
 RUN go generate ./...
-RUN cd server && go build -v -ldflags "-s -w" -o sls-doh
+RUN cd server && CGO_ENABLED=0 STRICT_MODE=0 go build -v -ldflags "-s -w" -o sls-doh
 
 FROM alpine AS runtime
 RUN apk update && apk add ca-certificates && rm -rf /var/cache/apk/*
