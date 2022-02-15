@@ -2,6 +2,7 @@ FROM golang AS builder
 WORKDIR /go/src/github.com/c-mueller/serverless-doh
 COPY . /go/src/github.com/c-mueller/serverless-doh
 RUN go generate ./...
+RUN go get -v
 RUN cd server && CGO_ENABLED=0 STRICT_MODE=0 go build -v -ldflags "-s -w" -o sls-doh
 
 FROM alpine AS runtime
