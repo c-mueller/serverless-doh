@@ -71,7 +71,7 @@ var strictBlacklists = []string{
 	"https://hosts-file.net/fsa.txt",
 }
 
-const blacklistTemplate = `package staticlist
+const blacklistTemplate = `package static
 func init() {
 	StaticProvider.ListCreationTimestamp = %d
 	
@@ -82,7 +82,7 @@ func init() {
 	StaticProvider.BlacklistItemCount = %d
 }`
 
-const whitelistTemplate = `package staticlist
+const whitelistTemplate = `package static
 func init() {
 	StaticProvider.ListCreationTimestamp = %d
 	

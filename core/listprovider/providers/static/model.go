@@ -1,7 +1,7 @@
-package staticlist
+package static
 
 import (
-	"github.com/c-mueller/serverless-doh/core"
+	"github.com/c-mueller/serverless-doh/core/listprovider"
 	"time"
 )
 
@@ -31,8 +31,8 @@ func (p *provider) MustAllow(qname string) bool {
 	return p.Whitelist[qname]
 }
 
-func (p *provider) GetListInfo() *core.ListInfo {
-	return &core.ListInfo{
+func (p *provider) GetListInfo() *listprovider.ListInfo {
+	return &listprovider.ListInfo{
 		QNamesBlacklisted: p.BlacklistItemCount,
 		QNamesWhitelisted: p.WhitelistItemCount,
 		LastUpdated:       time.Unix(int64(p.ListCreationTimestamp), 0),

@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/c-mueller/serverless-doh/config"
-	"github.com/c-mueller/serverless-doh/doh"
-	"github.com/c-mueller/serverless-doh/server/util"
-	"github.com/c-mueller/serverless-doh/staticlist"
+	"github.com/c-mueller/serverless-doh/core/config"
+	"github.com/c-mueller/serverless-doh/core/doh"
+	"github.com/c-mueller/serverless-doh/core/listprovider/providers/static"
+	"github.com/c-mueller/serverless-doh/core/util"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -84,7 +84,7 @@ func main() {
 			"version":         config.Version,
 			"build_timestamp": config.BuildTimestamp,
 			"build_context":   config.BuildContext,
-			"list_info":       staticlist.StaticProvider.GetListInfo(),
+			"list_info":       static.StaticProvider.GetListInfo(),
 		})
 	})
 

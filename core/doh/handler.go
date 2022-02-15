@@ -3,8 +3,8 @@ package doh
 import (
 	"context"
 	"fmt"
-	"github.com/c-mueller/serverless-doh/core"
-	"github.com/c-mueller/serverless-doh/staticlist"
+	"github.com/c-mueller/serverless-doh/core/listprovider"
+	"github.com/c-mueller/serverless-doh/core/listprovider/providers/static"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 	"math/rand"
@@ -45,7 +45,7 @@ type Handler struct {
 	IPv4Target net.IP
 	IPv6Target net.IP
 	Logger     *logrus.Entry
-	Provider   core.ListProvider
+	Provider   listprovider.ListProvider
 }
 
 type DNSRequest struct {
@@ -59,10 +59,10 @@ type DNSRequest struct {
 }
 
 func NewStaticHandler(conf *Config, logger *logrus.Entry) (*Handler, error) {
-	return NewHandler(conf, staticlist.StaticProvider, logger)
+	return NewHandler(conf, static.StaticProvider, logger)
 }
 
-func NewHandler(conf *Config, provider core.ListProvider, logger *logrus.Entry) (*Handler, error) {
+func NewHandler(conf *Config, provider listprovider.ListProvider, logger *logrus.Entry) (*Handler, error) {
 	timeout := time.Duration(conf.Timeout) * time.Second
 	tcpmode := "tcp"
 	if conf.UseTLS {

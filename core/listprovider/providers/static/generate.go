@@ -1,4 +1,4 @@
-package staticlist
+package static
 
 ///go:generate go run gen_blocklists.go -strict
 
