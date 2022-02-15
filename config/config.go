@@ -13,12 +13,6 @@ var (
 	BuildTimestamp = time.Now().Unix()
 	BuildContext   = "UNSET"
 	GoVersion      = "UNSET"
-
-	Blacklist             map[string]bool
-	Whitelist             map[string]bool
-	ListCreationTimestamp int
-	BlacklistItemCount    int
-	WhitelistItemCount    int
 )
 
 func GetUserAgent() string {

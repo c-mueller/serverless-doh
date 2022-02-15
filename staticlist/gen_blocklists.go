@@ -71,26 +71,26 @@ var strictBlacklists = []string{
 	"https://hosts-file.net/fsa.txt",
 }
 
-const blacklistTemplate = `package config
+const blacklistTemplate = `package staticlist
 func init() {
-	ListCreationTimestamp = %d
+	StaticProvider.ListCreationTimestamp = %d
 	
-	if Blacklist == nil {
-		Blacklist = make(map[string]bool)
+	if StaticProvider.Blacklist == nil {
+		StaticProvider.Blacklist = make(map[string]bool)
 	}
 %s
-	BlacklistItemCount = %d
+	StaticProvider.BlacklistItemCount = %d
 }`
 
-const whitelistTemplate = `package config
+const whitelistTemplate = `package staticlist
 func init() {
-	ListCreationTimestamp = %d
+	StaticProvider.ListCreationTimestamp = %d
 	
-	if Whitelist == nil {
-		Whitelist = make(map[string]bool)
+	if StaticProvider.Whitelist == nil {
+		StaticProvider.Whitelist = make(map[string]bool)
 	}
 %s
-	WhitelistItemCount = %d
+	StaticProvider.WhitelistItemCount = %d
 }`
 
 var ValidateQName = regexp.MustCompile("([a-zA-Z0-9]|\\.|-)*").MatchString
@@ -118,10 +118,10 @@ func main() {
 	}
 
 	fmt.Println("Creating Blacklist")
-	createFile("generated_blacklists.go", "\tBlacklist[\"%s\"] = true\n", blacklistTemplate, bl)
+	createFile("generated_blacklists.go", "\tStaticProvider.Blacklist[\"%s\"] = true\n", blacklistTemplate, bl)
 	if *useWhitelists {
 		fmt.Println("Creating Whitelist")
-		createFile("generated_whitelists.go", "\tWhitelist[\"%s\"] = true\n", whitelistTemplate, whitelists)
+		createFile("generated_whitelists.go", "\tStaticProvider.Whitelist[\"%s\"] = true\n", whitelistTemplate, whitelists)
 	}
 }
 

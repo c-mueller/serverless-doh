@@ -2,8 +2,9 @@ package main
 
 import (
 	"github.com/c-mueller/serverless-doh/config"
-	"github.com/c-mueller/serverless-doh/core"
+	"github.com/c-mueller/serverless-doh/doh"
 	"github.com/c-mueller/serverless-doh/server/util"
+	"github.com/c-mueller/serverless-doh/staticlist"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -34,11 +35,11 @@ func main() {
 	log.Info("Parsing Configuration...")
 	gin.SetMode(gin.ReleaseMode)
 	kingpin.Parse()
-	cfg := &core.Config{}
+	cfg := &doh.Config{}
 	if *useEnvironment {
-		cfg = core.GetConfigFromEnvironment()
+		cfg = doh.GetConfigFromEnvironment()
 	} else {
-		cfg = &core.Config{
+		cfg = &doh.Config{
 			EnableBlocking:           !*disableBlocking,
 			TCPOnly:                  true,
 			UseTLS:                   *useTLS,
@@ -55,10 +56,10 @@ func main() {
 	log.WithField("config", cfg).Info("Parsed configuration")
 
 	log.Info("Creating Handlers...")
-	cfghndlr, _ := core.NewHandler(cfg, logger)
+	cfghndlr, _ := doh.NewStaticHandler(cfg, logger)
 	bcfg := *cfg
 	bcfg.EnableBlocking = false
-	bcfghndlr, _ := core.NewHandler(&bcfg, logger)
+	bcfghndlr, _ := doh.NewStaticHandler(&bcfg, logger)
 
 	log.Info("Initializing Gin....")
 
@@ -73,20 +74,17 @@ func main() {
 		bcfghndlr.ServeHTTP(ctx.Writer, ctx.Request)
 	}
 
-	engine.Any("dq", blockingFunc)
-	engine.Any("dns-query", blockingFunc)
-	engine.Any("/", blockingFunc)
-	engine.Any("odq", nonblockingFunc)
-	engine.Any("open-dns-query", nonblockingFunc)
+	engine.GET("dns-query", blockingFunc)
+	engine.POST("dns-query", blockingFunc)
+	engine.GET("open-dns-query", nonblockingFunc)
+	engine.POST("open-dns-query", nonblockingFunc)
 	engine.GET("info", func(context *gin.Context) {
 		context.JSON(200, gin.H{
-			"resolvers":                 cfg.Upstream,
-			"version":                   config.Version,
-			"build_timestamp":           config.BuildTimestamp,
-			"list_generation_timestamp": config.ListCreationTimestamp,
-			"build_context":             config.BuildContext,
-			"blacklist_entry_count":     config.BlacklistItemCount,
-			"whitelist_entry_count":     config.WhitelistItemCount,
+			"resolvers":       cfg.Upstream,
+			"version":         config.Version,
+			"build_timestamp": config.BuildTimestamp,
+			"build_context":   config.BuildContext,
+			"list_info":       staticlist.StaticProvider.GetListInfo(),
 		})
 	})
 

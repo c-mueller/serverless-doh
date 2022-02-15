@@ -1,9 +1,10 @@
-package core
+package doh
 
 import (
 	"context"
 	"fmt"
-	"github.com/c-mueller/serverless-doh/config"
+	"github.com/c-mueller/serverless-doh/core"
+	"github.com/c-mueller/serverless-doh/staticlist"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 	"math/rand"
@@ -44,6 +45,7 @@ type Handler struct {
 	IPv4Target net.IP
 	IPv6Target net.IP
 	Logger     *logrus.Entry
+	Provider   core.ListProvider
 }
 
 type DNSRequest struct {
@@ -56,7 +58,11 @@ type DNSRequest struct {
 	ErrorText       string
 }
 
-func NewHandler(conf *Config, logger *logrus.Entry) (*Handler, error) {
+func NewStaticHandler(conf *Config, logger *logrus.Entry) (*Handler, error) {
+	return NewHandler(conf, staticlist.StaticProvider, logger)
+}
+
+func NewHandler(conf *Config, provider core.ListProvider, logger *logrus.Entry) (*Handler, error) {
 	timeout := time.Duration(conf.Timeout) * time.Second
 	tcpmode := "tcp"
 	if conf.UseTLS {
@@ -79,6 +85,7 @@ func NewHandler(conf *Config, logger *logrus.Entry) (*Handler, error) {
 		IPv4Target: net.ParseIP("127.0.0.1"),
 		IPv6Target: net.ParseIP("::1"),
 		Logger:     logger,
+		Provider:   provider,
 	}
 	return s, nil
 }
@@ -95,9 +102,9 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Handler", s.Config.UserAgent)
 	w.Header().Set("X-Powered-By", s.Config.UserAgent)
 	if s.Config.AppendListHeaders {
-		w.Header().Set("X-DoH-Blacklist-Item-Count", fmt.Sprintf("%d", config.BlacklistItemCount))
-		w.Header().Set("X-DoH-Whitelist-Item-Count", fmt.Sprintf("%d", config.WhitelistItemCount))
-		w.Header().Set("X-DoH-Lists-Last-Update", time.Unix(int64(config.ListCreationTimestamp), 0).String())
+		w.Header().Set("X-DoH-Blacklist-Item-Count", fmt.Sprintf("%d", s.Provider.GetListInfo().QNamesBlacklisted))
+		w.Header().Set("X-DoH-Whitelist-Item-Count", fmt.Sprintf("%d", s.Provider.GetListInfo().QNamesBlacklisted))
+		w.Header().Set("X-DoH-Lists-Last-Update", s.Provider.GetListInfo().LastUpdated.String())
 	}
 
 	if r.Method == "OPTIONS" {
@@ -250,7 +257,7 @@ func (s *Handler) doDNSQuery(ctx context.Context, req *DNSRequest, rw http.Respo
 	}
 
 	if s.Config.EnableBlocking {
-		if !config.Whitelist[qname] && config.Blacklist[qname] {
+		if !s.Provider.MustAllow(qname) && s.Provider.MustBlock(qname) {
 			var answers []dns.RR
 			if dnsQuestion.Qtype == dns.TypeAAAA {
 				answers = aaaa(dnsQuestion.Name, []net.IP{s.IPv6Target})
@@ -263,8 +270,8 @@ func (s *Handler) doDNSQuery(ctx context.Context, req *DNSRequest, rw http.Respo
 			m.Authoritative, m.RecursionAvailable = true, true
 			m.Answer = answers
 
-			rw.Header().Set("X-QName-Blocked", "true")
-			rw.Header().Set("X-Used-Resolver", "127.0.0.1")
+			// rw.Header().Set("X-QName-Blocked", "true")
+			// rw.Header().Set("X-Used-Resolver", "127.0.0.1")
 
 			req.Response = m
 			return req, nil

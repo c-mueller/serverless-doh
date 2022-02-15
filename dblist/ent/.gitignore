@@ -1,0 +1,5 @@
+*.go
+
+!schema/*.go
+!generate.go
+!external.go

@@ -41,7 +41,7 @@ functions:
       ENABLE_BLOCKING: "true"
       # Append Black and whitelist informations to the response headers
       # this includes the number of entries and the update timestamp of the lists
-      RESPONSE_APPEND_LIST_HEADERS: "true"
+      RESPONSE_APPEND_LIST_HEADERS: "false"
       # Append the resolved QName to the response header
       RESPONSE_APPEND_QNAME_HEADER: "false"
       # Verbose log output (useful for debugging)
