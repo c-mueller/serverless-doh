@@ -88,7 +88,7 @@ with the URLs you want to use.
 Assuming the `gcloud` CLI is set up run the following command in the repositories root directory
 
 ```
-gcloud functions deploy HandleDNS --region=europe-west2 --runtime go111 --trigger-http --memory 128 --env-vars-file=gcp_config.yml
+gcloud functions deploy HandleDNS --region=europe-west2 --runtime go116 --trigger-http --memory 128 --env-vars-file=gcp_config.yml --security-level=secure-always --timeout=2s
 ```
 
 Please adjust the region according to your needs. It is important to _not_ change the name and trigger type.
