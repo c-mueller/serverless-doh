@@ -3,7 +3,7 @@ module github.com/c-mueller/serverless-doh
 go 1.16
 
 require (
-	github.com/gin-gonic/gin v1.7.0
+	github.com/gin-gonic/gin v1.8.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/m13253/dns-over-https v1.4.2
 	github.com/miekg/dns v1.1.46
