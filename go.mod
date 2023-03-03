@@ -14,6 +14,6 @@ require (
 
 require (
 	entgo.io/ent v0.10.0
-	github.com/akrylysov/algnhsa v0.12.1
+	github.com/akrylysov/algnhsa v1.0.0
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
 )
